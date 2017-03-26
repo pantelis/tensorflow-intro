@@ -37,7 +37,7 @@ fully_connected_units = 200
 MAX_STEPS = 20000
 
 # Directory to put the training data.
-TRAIN_DIR="./mnist_cnn"
+TRAIN_DIR="/home/pantelis/Projects/tensorflow-intro/mnist_cnn"
 
 
 # Step 3: Get input data: get the sets of images and labels for training, validation, and
