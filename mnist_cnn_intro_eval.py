@@ -27,12 +27,12 @@ with tf.Session(graph=tf.Graph()) as sess:
     images_placeholder = tf.get_collection("images")
     labels_placeholder = tf.get_collection("labels")
     #
-    # # Add an Op that chooses the top k predictions (k=1 by default).
-    # eval_op = tf.nn.top_k(logits)
-    #
-    # # Run evaluation.
-    # images_feed, labels_feed = data_sets.validation.next_batch(EVAL_BATCH_SIZE)
-    # imgplot = plt.imshow(np.reshape(images_feed, (28, 28)))
+    # Add an Op that chooses the top k predictions (k=1 by default).
+    eval_op = tf.nn.top_k(logits)
+
+    # Run evaluation.
+    images_feed, labels_feed = data_sets.validation.next_batch(EVAL_BATCH_SIZE)
+    imgplot = plt.imshow(np.reshape(images_feed, (28, 28)))
     # prediction = sess.run(eval_op,
     #                       feed_dict={images_placeholder: images_feed,
     #                                  labels_placeholder: labels_feed})

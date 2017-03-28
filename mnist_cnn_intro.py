@@ -42,7 +42,7 @@ TRAIN_DIR="/home/pantelis/Projects/tensorflow-intro/mnist_cnn"
 
 # Step 3: Get input data: get the sets of images and labels for training, validation, and
 # test on MNIST.
-data_sets = read_data_sets(TRAIN_DIR, False)
+data_sets = read_data_sets(TRAIN_DIR, one_hot=True)
 
 
 # Step 4: Build inference graph.
@@ -102,13 +102,12 @@ def mnist_inference(images, filter_1_units, num_channels_1, filter_2_units, num_
 
     # Uncomment the following line to see what we have constructed.
     tf.train.write_graph(tf.get_default_graph().as_graph_def(),
-                          ".", "inference_mnist_cnn.pbtxt", as_text=True)
+                          "TRAIN_DIR", "inference_mnist_cnn.pbtxt", as_text=True)
     return logits
 
-
-# Step 5: Build training graph.
-def mnist_training(logits, labels, learning_rate):
-    """Build the training graph.
+# define the loss operation
+def loss(logits, labels):
+    """Calculates the loss from logits and labels.
 
     Args:
         logits: Logits tensor, float - [BATCH_SIZE, NUM_CLASSES].
@@ -116,15 +115,30 @@ def mnist_training(logits, labels, learning_rate):
           range [0, NUM_CLASSES).
         learning_rate: The learning rate to use for gradient descent.
     Returns:
-        train_op: The Op for training.
         loss: The Op for calculating loss.
     """
     # Create an operation that calculates loss.
     labels = tf.to_int64(labels)
+    
     cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
         logits=logits, labels=labels, name='xentropy')
+    
     loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
+    return loss
+
+# Step 5: Build training graph.
+def mnist_training(loss, learning_rate):
+    """Build the training graph.
+
+    Args:
+        learning_rate: The learning rate to use for gradient descent.
+    Returns:
+        train_op: The Op for training.
+    """
+    # Add a scalar summary for the snapshot loss.
+    tf.summary.scalar('loss', loss)
+    
     # Create the gradient descent optimizer with the given learning rate.
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
@@ -138,8 +152,22 @@ def mnist_training(logits, labels, learning_rate):
     # Uncomment the following line to see what we have constructed.
     tf.train.write_graph(tf.get_default_graph().as_graph_def(),
                          TRAIN_DIR, "train_mnist_cnn.pbtxt", as_text=True)
-    return train_op, loss
+    
+    return train_op
 
+# define the accuracy operation
+def evaluation(logits, labels):
+    with tf.name_scope('Accuracy'):
+        # Operation comparing prediction with true label
+        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+
+        # Operation calculating the accuracy of the predictions
+        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+
+        # Summary operation for the accuracy
+        tf.scalar_summary('train_accuracy', accuracy)
+
+    return accuracy
 
 # Step 6: Build the complete graph for feeding inputs, training, and saving checkpoints.
 mnist_graph = tf.Graph()
@@ -147,6 +175,7 @@ with mnist_graph.as_default():
     # Generate placeholders for the images and labels.
     images_placeholder = tf.placeholder(tf.float32)                                       
     labels_placeholder = tf.placeholder(tf.int32)
+    
     tf.add_to_collection("images", images_placeholder)  # Remember this Op.
     tf.add_to_collection("labels", labels_placeholder)  # Remember this Op.
 
@@ -156,7 +185,7 @@ with mnist_graph.as_default():
     tf.add_to_collection("logits", logits)  # Remember this Op.
 
     # Add to the Graph the Ops that calculate and apply gradients.
-    train_op, loss = mnist_training(logits=logits, labels=labels_placeholder, learning_rate=0.01)
+    train_op = mnist_training(logits=logits, labels=labels_placeholder, learning_rate=0.01)
 
     # Add the variable initializer Op.
     init = tf.global_variables_initializer()
@@ -199,5 +228,5 @@ with tf.Session(graph=mnist_graph) as sess:
         checkpoint_file = os.path.join(TRAIN_DIR, 'checkpoint')
         saver.save(sess, checkpoint_file, global_step=step)
 
-
-
+    # merge all summaries into a single "operation" which we can execute in a session
+    summary_op = tf.summary.merge_all()
