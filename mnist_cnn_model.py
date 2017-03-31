@@ -123,9 +123,9 @@ def evaluation(logits, labels):
         correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
 
         # Operation calculating the accuracy of the predictions
-        accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+        accuracy = 100.0 * tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
         # Summary operation for the accuracy
-        tf.summary.scalar('train_accuracy', accuracy)
+        tf.summary.scalar('accuracy', accuracy)
 
     return accuracy
