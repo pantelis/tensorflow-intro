@@ -25,6 +25,7 @@ def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channe
                                 stddev=1.0 / math.sqrt(float(filter_1_units**2))), name='W1')
         B1 = tf.Variable(tf.zeros([num_channels_1]), name='B1')
         Y1 = tf.nn.relu(tf.nn.conv2d(images, W1, strides=[1, 1, 1, 1], padding='SAME') + B1)
+        variable_summaries(Y1)
     # Conv Layer 2
     with tf.name_scope('layer2'):
         W2 = tf.Variable(
@@ -32,6 +33,7 @@ def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channe
                                 stddev=1.0 / math.sqrt(float(filter_2_units^2))), name='W2')
         B2 = tf.Variable(tf.zeros([num_channels_2]), name='B2')
         Y2 = tf.nn.relu(tf.nn.conv2d(Y1, W2, strides=[1, 2, 2, 1], padding='SAME') + B2)
+        variable_summaries(Y2)
     # Layer 3
     with tf.name_scope('layer3'):
         W3 = tf.Variable(
@@ -42,7 +44,7 @@ def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channe
         
         # flatten all values for the subsequent fully connected layer
         Y3 = tf.reshape(Y3, shape = [-1, 7*7*num_channels_3])
-    
+        variable_summaries(Y3)
     # Fully connected Linear
     with tf.name_scope('linear_layer4'):
         W4 = tf.Variable(
@@ -50,7 +52,7 @@ def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channe
                                 stddev=1.0 / math.sqrt(float(7*7*num_channels_3))), name='W4')
         B4 = tf.Variable(tf.zeros([hidden_4_units]), name='B4')
         Y4 = tf.nn.relu(tf.matmul(Y3, W4) + B4)
-    
+        variable_summaries(Y4)
     # Softmax Output Layer
     with tf.name_scope('softmax'):
         W5 = tf.Variable(
@@ -58,7 +60,7 @@ def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channe
                                 stddev=1.0 / math.sqrt(float(hidden_4_units)), name='W5'))
         B5 = tf.Variable(tf.zeros([softmax_units]), name='B5')
         logits = tf.matmul(Y4, W5) + B5
-
+        variable_summaries(logits)
     return logits
 
 # define the loss operation
@@ -128,3 +130,16 @@ def evaluation(logits, labels):
         tf.summary.scalar('accuracy', accuracy)
 
     return accuracy
+
+
+def variable_summaries(var):
+    """Attach a lot of summaries to a Tensor (for TensorBoard visualization)."""
+    with tf.name_scope('summaries'):
+        mean = tf.reduce_mean(var)
+        tf.summary.scalar('mean', mean)
+        with tf.name_scope('stddev'):
+            stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
+        tf.summary.scalar('stddev', stddev)
+        tf.summary.scalar('max', tf.reduce_max(var))
+        tf.summary.scalar('min', tf.reduce_min(var))
+        tf.summary.histogram('histogram', var)
