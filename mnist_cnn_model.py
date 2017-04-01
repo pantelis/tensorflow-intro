@@ -3,20 +3,20 @@ import os
 import tensorflow as tf
 from tensorflow.contrib.learn.python.learn.datasets.mnist import read_data_sets
 
+
 # Define the inference operation.
 def inference(images, filter_1_units, num_channels_1, filter_2_units, num_channels_2, filter_3_units, num_channels_3,
               hidden_4_units, softmax_units):
-    """Build the model up to where it may be used for inference.
-    Args:
-        images: Images placeholder.
-        parameters.graph.filter_1_units: Size of the first conv layer.
-        parameters.graph.filter_2_units: Size of the second conv layer.
-        parameters.graph.filter_3_units: Size of the third conv layer.
-        hidden_4_units: Size of the fourth hidden linear layer.
-        softmax_units: Size of the output softmax layer.
-    Returns:
-        logits: Output tensor with the computed logits.
+    """ Builds the graph for a deep net for classifying digits.
+      Args:
+        images: an input tensor with the dimensions (N_examples, 784), where 784 is the
+        number of pixels in a standard MNIST image.
+      Returns:
+         a tensor of shape (N_examples, 10), with values
+        equal to the logits of classifying the digit into one of 10 classes (the
+        digits 0-9). 
     """
+    images = tf.reshape(images, [-1, 28, 28, 1])
 
     # Conv Layer 1
     with tf.name_scope('layer1'):
@@ -66,23 +66,22 @@ def loss(logits, labels):
     """Calculates the loss from logits and labels.
 
     Args:
-        logits: Logits tensor, float - [batch_size, parameters.dataset.num_classes].
-        labels: Labels tensor, int32 - [batch_size], with values in the
-          range [0, num_classes).
+        logits: Logits tensor, float - [batch_size, num_classes].
+        labels: Labels tensor, int32 - [batch_size, num_classes].
         learning_rate: The learning rate to use for gradient descent.
     Returns:
         loss: The Op for calculating loss.
     """
+
     # Create an operation that calculates loss.
-    cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-        logits=logits, labels=labels, name='xentropy')
-    
-    loss = tf.reduce_mean(cross_entropy, name='xentropy_mean')
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=labels, name='xentropy')
+
+    cross_entropy = tf.reduce_mean(cross_entropy, name='xentropy_mean')
 
     # Add a scalar summary for the snapshot loss.
-    tf.summary.scalar('loss', loss)
+    tf.summary.scalar('cross-entropy', cross_entropy)
 
-    return loss
+    return cross_entropy
 
 # Training operation
 def training(loss, learning_rate):
@@ -120,7 +119,7 @@ def evaluation(logits, labels):
     
     with tf.name_scope('Accuracy'):
         # Operation comparing prediction with true label
-        correct_prediction = tf.equal(tf.argmax(logits, 1), labels)
+        correct_prediction = tf.equal(tf.argmax(logits, 1), tf.argmax(labels, 1))
 
         # Operation calculating the accuracy of the predictions
         accuracy = 100.0 * tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
